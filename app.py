@@ -14,7 +14,7 @@ st.set_page_config(
     )
 
 # main page heading
-st.title("Flying object detection")
+st.title("Animals detection")
 
 # sidebar
 st.sidebar.header("DL Model Config")
