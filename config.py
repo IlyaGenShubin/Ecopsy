@@ -26,7 +26,7 @@ YOLOv8s = DETECTION_MODEL_DIR / "yolov8s.pt"
 YOLOv8m = DETECTION_MODEL_DIR / "yolov8m.pt"
 YOLOv8l = DETECTION_MODEL_DIR / "yolov8l.pt"
 YOLOv8x = DETECTION_MODEL_DIR / "yolov8x.pt"
-YOLOv8x = DETECTION_MODEL_DIR / "best.pt"
+YOLO_best = DETECTION_MODEL_DIR / "best.pt"
 
 
 DETECTION_MODEL_LIST = [
