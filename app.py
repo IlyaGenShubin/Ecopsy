@@ -1,67 +1,53 @@
-from pathlib import Path
-from PIL import Image
 import streamlit as st
+from PIL import Image
+from PIL.ExifTags import TAGS
+import pandas as pd
 
-import config
-from utils import load_model, infer_uploaded_image, infer_uploaded_video, infer_uploaded_webcam
+def get_exif_data(image_path):
+    image = Image.open(image_path)
+    exif_data = image._getexif()
 
-# setting page layout
-st.set_page_config(
-    page_title="YOLOv8 detection",
-    page_icon="🐱",
-    layout="wide",
-    initial_sidebar_state="expanded"
-    )
+    if exif_data is not None:
+        extracted_exif = {}
+        for tag, value in exif_data.items():
+            tag_name = TAGS.get(tag, tag)
+            extracted_exif[tag_name] = value
+        return extracted_exif
+    else:
+        return None
 
-# main page heading
-st.title("Animals detection")
+# Main Streamlit app
+def main():
+    st.title('Registration of animals')
 
-# sidebar
-st.sidebar.header("DL Model Config")
+    # Upload multiple image files
+    uploaded_images = st.file_uploader("Upload multiple images", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
-# model options
-task_type = st.sidebar.selectbox(
-    "Select Task",
-    ["Detection"]
-)
+    exif_data_list = []
+    file_names = []
 
-model_type = None
-if task_type == "Detection":
-    model_type = st.sidebar.selectbox(
-        "Select Model",
-        config.DETECTION_MODEL_LIST
-    )
-else:
-    st.error("Currently only 'Detection' function is implemented")
+    for uploaded_image in uploaded_images or []:
+        if uploaded_image is not None:
+            image = Image.open(uploaded_image)
+            st.image(image, caption="Uploaded Image", use_column_width=True)
 
-confidence = float(st.sidebar.slider(
-    "Select Model Confidence", 30, 100, 50)) / 100
+            # Get file name and EXIF data
+            file_names.append(uploaded_image.name)
+            exif_data = get_exif_data(uploaded_image)
+            exif_data_list.append(exif_data['DateTime'])
 
-model_path = ""
-if model_type:
-    model_path = Path(config.DETECTION_MODEL_DIR, str(model_type))
-else:
-    st.error("Please Select Model in Sidebar")
 
-# load pretrained DL model
-try:
-    model = load_model(model_path)
-except Exception as e:
-    st.error(f"Unable to load model. Please check the specified path: {model_path}")
+    # Save to DataFrame and CSV
+    if exif_data_list:
+        data = {'img_name': file_names, 'date_registration': exif_data_list}
+        df = pd.DataFrame(data)
+        st.subheader('Registrations:')
+        st.dataframe(df)
 
-# image/video options
-st.sidebar.header("Image/Video Config")
-source_selectbox = st.sidebar.selectbox(
-    "Select Source",
-    config.SOURCES_LIST
-)
+        st.subheader('Download CSV File:')
+        csv = df.to_csv(index=False)
+        st.download_button(label="Download CSV", data=csv, file_name='exif_data.csv', mime='text/csv')
 
-source_img = None
-if source_selectbox == config.SOURCES_LIST[0]: # Image
-    infer_uploaded_image(confidence, model)
-elif source_selectbox == config.SOURCES_LIST[1]: # Video
-    infer_uploaded_video(confidence, model)
-elif source_selectbox == config.SOURCES_LIST[2]: # Webcam
-    infer_uploaded_webcam(confidence, model)
-else:
-    st.error("Currently only 'Image' and 'Video' source are implemented")
+# Run the app
+if __name__ == '__main__':
+    main()
